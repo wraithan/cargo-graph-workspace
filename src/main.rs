@@ -6,7 +6,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 use clap::{App, Arg};
-use cargo_metadata::{DependencyKind};
+use cargo_metadata::DependencyKind;
 
 fn main() {
     let matches = App::new("cargo graph-workspace")
@@ -14,16 +14,16 @@ fn main() {
         .about("Creates a dependency graph in a graphviz file named output.dot")
         .arg(
             Arg::with_name("graph-workspace")
-            .possible_value("graph-workspace")
-            .index(1)
-            .hidden(true)
+                .possible_value("graph-workspace")
+                .index(1)
+                .hidden(true),
         )
         .arg(
             Arg::with_name("manifest-path")
                 .long("manifest-path")
                 .value_name("PATH")
                 .takes_value(true)
-                .help("Path to the Cargo.lock you want to graph.")
+                .help("Path to the Cargo.lock you want to graph."),
         )
         .get_matches();
 
@@ -45,21 +45,24 @@ fn main() {
             continue;
         }
         graph.add(package_name.clone(), Node::Dependency);
-        if let Some(package) = deps_metadata.packages.iter().find(|p| p.name == package_name) {
+        if let Some(package) = deps_metadata
+            .packages
+            .iter()
+            .find(|p| p.name == package_name)
+        {
             for dep in &package.dependencies {
                 match dep.kind {
-                    DependencyKind::Build => continue,
-                    DependencyKind::Development => continue,
+                    DependencyKind::Build | DependencyKind::Development => continue,
                     DependencyKind::Normal => {
                         graph.add_relationship(package.name.clone(), dep.name.clone(), 1);
                         workload.push(dep.name.clone());
-                    },
+                    }
                 };
             }
         }
     }
 
-    for package in workspace_packages.into_iter() {
+    for package in workspace_packages {
         graph.add(package, Node::Core);
     }
     // println!("{:?}", graph);
@@ -90,9 +93,9 @@ impl Graph {
             Node::Core => {
                 self.nodes.insert(name, node_type);
             }
-            Node::Dependency => if !self.nodes.contains_key(&name) {
-                self.nodes.insert(name, node_type);
-            },
+            Node::Dependency => {
+                self.nodes.entry(name).or_insert(node_type);
+            }
         };
     }
 
@@ -100,23 +103,30 @@ impl Graph {
         self.relationships.insert((left, right), weight);
     }
 
-    fn contains_package(&self, name: &String) -> bool {
+    fn contains_package(&self, name: &str) -> bool {
         self.nodes.contains_key(name)
     }
 
     fn draw(&self) {
         let mut file = File::create("output.dot").unwrap();
-        file.write(b"digraph DepGraph {\n\tmincross = 2.0;\n\tratio = \"auto\";\n").unwrap();
+        file.write_all(b"digraph DepGraph {\n\tmincross = 2.0;\n\tratio = \"auto\";\n")
+            .unwrap();
         for (name, node_type) in &self.nodes {
-            let shape = match node_type {
-                &Node::Core => "box",
-                &Node::Dependency => "circle",
+            let shape = match *node_type {
+                Node::Core => "box",
+                Node::Dependency => "circle",
             };
             write!(file, "\t\"{}\" [shape={}];\n", name, shape).unwrap();
         }
         for (&(ref left, ref right), weight) in &self.relationships {
-            write!(file, "\t\"{}\" -> \"{}\" [weight={}];\n", left, right, weight).unwrap();
+            write!(
+                file,
+                "\t\"{}\" -> \"{}\" [weight={}];\n",
+                left,
+                right,
+                weight
+            ).unwrap();
         }
-        file.write(b"}\n").unwrap();
+        file.write_all(b"}\n").unwrap();
     }
 }
