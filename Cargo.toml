@@ -1,0 +1,9 @@
+[package]
+name = "cargo-graph-workspace"
+version = "0.1.0"
+authors = ["Wraithan (Chris McDonald) <xwraithanx@gmail.com>"]
+license = "MIT"
+
+[dependencies]
+cargo_metadata = "*"
+clap = "*"
