@@ -9,12 +9,21 @@ use clap::{App, Arg};
 use cargo_metadata::{DependencyKind};
 
 fn main() {
-    let matches = App::new("cargo-graph-workspace")
+    let matches = App::new("cargo graph-workspace")
+        .usage("cargo graph-workspace [OPTIONS]")
+        .about("Creates a dependency graph in a graphviz file named output.dot")
+        .arg(
+            Arg::with_name("graph-workspace")
+            .possible_value("graph-workspace")
+            .index(1)
+            .hidden(true)
+        )
         .arg(
             Arg::with_name("manifest-path")
                 .long("manifest-path")
                 .value_name("PATH")
-                .takes_value(true),
+                .takes_value(true)
+                .help("Path to the Cargo.lock you want to graph.")
         )
         .get_matches();
 
